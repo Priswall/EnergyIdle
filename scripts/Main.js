@@ -11,7 +11,6 @@ function render() {
     if(Game.init()) Game.init = ()=>{return false;};
     if(!Utils.c) {
         Utils.c = canvas.getContext("2d");
-        Utils.c.font = "5vw StraightRuler Arial";
         Utils.c.textBaseline = "middle";
     }
 
@@ -23,7 +22,12 @@ function render() {
 
     Utils.c.textAlign = "left";
     Utils.c.fillStyle = "black";
+    Utils.c.font = "5vw StraightRuler Arial";
     Utils.c.fillText("$" + Utils.money, 5, 45);
+    Utils.c.fillText(Game.nodes.length, 5, 95);
+
+    Utils.mouse.leftIsClicked = false;
+    Utils.mouse.rightIsClicked = false;
 
     requestAnimationFrame(render);
 }
@@ -40,9 +44,12 @@ addEventListener("keydown", e=>{Utils.keys[e.keyCode] = true;});
 addEventListener("keyup", e=>{Utils.keys[e.keyCode] = false;});
 addEventListener("contextmenu", e=>{e.preventDefault(); return false;});
 addEventListener("mousedown", e=>{
-    if(e.which == 1) Utils.mouse.leftIsPressed = true;
-    else if(e.which == 3) {
+    if(e.which == 1) {
+        Utils.mouse.leftIsPressed = true;
+        Utils.mouse.leftIsClicked = true;
+    } else if(e.which == 3) {
         Utils.mouse.rightIsPressed = true;
+        Utils.mouse.rightIsClicked = true;
         e.preventDefault();
     }
 });
@@ -54,8 +61,10 @@ addEventListener("mouseup", e=>{
     }
 });
 canvas.addEventListener("mousemove", e=>{
-    Utils.mouse.x = e.clientX;
-    Utils.mouse.y = e.clientY;
+    Utils.mouse.x = e.clientX - Utils.cam.x;
+    Utils.mouse.y = e.clientY - Utils.cam.y;
+    Utils.mouse.realX = e.clientX;
+    Utils.mouse.realY = e.clientY;
 });
 requestAnimationFrame(render);
 setInterval(update, 16)

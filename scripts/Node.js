@@ -1,8 +1,8 @@
 import {Connector} from "/scripts/Connector.js";
 import Utils from "/scripts/Utils.js";
 
-class Tile {
-    constructor(x = 0, y = 0, radius = 25, color = "rgb(200, 0, 200)", borderColor = "rgb(255, 255, 255)", text = "Default text", outputs = 0, inputs = 0, maxEnergy = 20) {
+class Node {
+    constructor(x = 0, y = 0, radius = 25, color = "rgb(200, 0, 200)", borderColor = "rgb(255, 255, 255)", text = "Default text", outputs = 0, inputs = 0, maxEnergy = 20, price = 50) {
         this.isHovered = false;
         this.pos = {x: x, y: y};
         this.radius = radius;
@@ -15,28 +15,26 @@ class Tile {
         this.maxInputs = inputs;
         this.canBeSelected = false;
         this.isSelected = false;
-        this.makingConnector = false;
+        this.connectorInProgress = undefined;
         this.energy = 0;
         this.maxEnergy = maxEnergy;
         this.borderPercent = 1;
+        this.currentOutput = 0;
     }
 
     connect(connector) {
         if(connector && this.inputs.length < this.maxInputs) {
             if(connector.inputNode == this) {
-                this.makingConnector = false;
-                this.outputs.splice(this.outputs.indexOf(connector, 1));
+                this.connectorInProgress = undefined;
             } else {
                 this.inputs.push(connector);
                 connector.connect(this);
-                connector.inputNode.makingConnector = false;
             }
+            return true;
         }
-        else if(!connector && this.outputs.length < this.maxOutputs) {
-            let c = new Connector(this);
-            this.outputs.push(c);
-            this.makingConnector = true;
-        }
+        else if(!connector && !this.connectorInProgress && this.outputs.length < this.maxOutputs)
+            this.connectorInProgress = new Connector(this);
+        return false;
     }
 
     isMouseWithin() {
@@ -53,12 +51,13 @@ class Tile {
         }else if(!this.isSelected) {
             this.canBeSelected = false;
         }
-    }
 
-    exportEnergy() {
-        for(var i = this.outputs.length - 1; i >= 0; i--) {
-            this.outputs[i].update();
+        if(this.outputs.length > 0 && this.outputs[this.currentOutput].canTransfer) {
+            if(Connector.transferEnergy(this.outputs[this.currentOutput]))
+                this.currentOutput = (this.currentOutput + 1) % this.outputs.length;
         }
+
+        if(this.connectorInProgress) this.connectorInProgress.update();
     }
 
     transferEnergy() {
@@ -66,7 +65,7 @@ class Tile {
     }
 
     render() {
-        if(this.makingConnector) for(var output of this.outputs) output.render();
+        if(this.connectorInProgress) this.connectorInProgress.render();
         Utils.c.fillStyle = this.color;
         Utils.c.strokeStyle = this.borderColor;
         Utils.c.beginPath();
@@ -82,13 +81,15 @@ class Tile {
         Utils.c.arc(this.pos.x, this.pos.y, this.radius - (this.radius / 20), 0, 2 * Math.PI * this.borderPercent, 1);
         Utils.c.stroke();
         Utils.c.fillStyle = "black";
-        Utils.c.fillText(this.energy, this.pos.x , this.pos.y);
+
+        Utils.c.font = this.radius / 2 + "px StraightRuler Arial";
+        Utils.c.fillText(this.currentOutput, this.pos.x , this.pos.y);
     }
 }
 
-export class EnergyMaker extends Tile {
+export class EnergyMaker extends Node {
     constructor(x, y) {
-        super(x, y, 50, "rgb(255, 190, 0)", "rgb(255, 255, 0)", "Energy Maker", 1);
+        super(x, y, 50, "rgb(255, 190, 0)", "rgb(255, 255, 0)", "Energy Maker", 1, 0, 50);
         this.timestamp = 0;
     }
 
@@ -99,19 +100,18 @@ export class EnergyMaker extends Tile {
             this.energy++;
             this.timestamp = Utils.millis + 1000;
         }
-        super.exportEnergy();
 
         if(this.energy < this.maxEnergy) this.borderPercent = (this.timestamp - Utils.millis) / 1000;
         else this.borderPercent = 1;
     }
 }
 
-export class EnergyExporter extends Tile {
+export class EnergyExporter extends Node {
     static maxSellRate = 5;
     static energyValue = 1;
 
     constructor(x, y) {
-        super(x, y, 100, "rgb(200, 200, 200)", undefined, "Energy Exporter", 0, 1);
+        super(x, y, 100, "rgb(200, 200, 200)", undefined, "Energy Exporter", 0, 10);
         this.timestamp = 0;
     }
 
@@ -127,6 +127,8 @@ export class EnergyExporter extends Tile {
 
         if(this.timestamp - Utils.millis > 0) this.borderPercent = (this.timestamp - Utils.millis) / 500;
         else this.borderPercent = 1;
+
+        this.canBeSelected = false;
     }
 
     transferEnergy(energy) {
@@ -145,14 +147,29 @@ export class EnergyExporter extends Tile {
 
 }
 
-export class EnergySplitter extends Tile {
+export class EnergySplitter extends Node {
+    static maxOutputs = 2;
+
     constructor(x, y) {
-        super(x, y, 50, "rgb(200, 150, 150)", "rgb(255, 200, 200)", "Energy Splitter", 2, 1);
+        super(x, y, 50, "rgb(200, 150, 150)", "rgb(255, 200, 200)", "Energy Splitter", EnergySplitter.maxOutputs, 1, undefined, 250);
     }
 
     update() {
         super.update();
     }
 
-    static maxOutputs = 2;
+    transferEnergy(energy) {
+        if(this.energy < this.maxEnergy) {
+            if(this.energy + energy < this.maxEnergy) {
+                this.energy += energy;
+                return energy;
+            } else {
+                let pEnergy = this.energy;
+                this.energy = this.maxEnergy;
+                return this.maxEnergy - pEnergy;
+            }
+        }
+        return 0;
+    }
+
 }
