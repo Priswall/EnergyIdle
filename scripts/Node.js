@@ -23,14 +23,17 @@ class Node {
     }
 
     connect(connector) {
-        if(connector && this.inputs.length < this.maxInputs) {
-            if(connector.inputNode == this) {
-                this.connectorInProgress = undefined;
-            } else {
-                this.inputs.push(connector);
-                connector.connect(this);
+        if(connector) {
+            let dist = Math.sqrt(((this.pos.x - connector.inputNode.pos.x) ** 2) + ((this.pos.y - connector.inputNode.pos.y) ** 2));
+            if(this.inputs.length < this.maxInputs && dist < Connector.maxDistance) {
+                if(connector.inputNode == this) {
+                    this.connectorInProgress = undefined;
+                } else {
+                    this.inputs.push(connector);
+                    connector.connect(this);
+                }
+                return true;
             }
-            return true;
         }
         else if(!connector && !this.connectorInProgress && this.outputs.length < this.maxOutputs)
             this.connectorInProgress = new Connector(this);
@@ -47,7 +50,6 @@ class Node {
             if(!Utils.mouse.leftIsPressed && !Utils.mouse.rightIsPressed) this.canBeSelected = true;
             if(Utils.mouse.leftIsPressed && this.canBeSelected) this.isSelected = true;
             else if(Utils.mouse.rightIsPressed && this.canBeSelected) this.connect();
-            else this.isSelected = false;
         }else if(!this.isSelected) {
             this.canBeSelected = false;
         }
@@ -60,7 +62,17 @@ class Node {
         if(this.connectorInProgress) this.connectorInProgress.update();
     }
 
-    transferEnergy() {
+    transferEnergy(energy) {
+        if(this.energy < this.maxEnergy) {
+            if(this.energy + energy < this.maxEnergy) {
+                this.energy += energy;
+                return energy;
+            } else {
+                let pEnergy = this.energy;
+                this.energy = this.maxEnergy;
+                return this.maxEnergy - pEnergy;
+            }
+        }
         return 0;
     }
 
@@ -80,10 +92,10 @@ class Node {
         Utils.c.lineWidth = this.radius / 10;
         Utils.c.arc(this.pos.x, this.pos.y, this.radius - (this.radius / 20), 0, 2 * Math.PI * this.borderPercent, 1);
         Utils.c.stroke();
-        Utils.c.fillStyle = "black";
 
+        Utils.c.fillStyle = "black";
         Utils.c.font = this.radius / 2 + "px StraightRuler Arial";
-        Utils.c.fillText(this.currentOutput, this.pos.x , this.pos.y);
+        Utils.c.fillText(this.energy + " W/h", this.pos.x , this.pos.y);
     }
 }
 
@@ -130,21 +142,6 @@ export class EnergyExporter extends Node {
 
         this.canBeSelected = false;
     }
-
-    transferEnergy(energy) {
-        if(this.energy < this.maxEnergy) {
-            if(this.energy + energy < this.maxEnergy) {
-                this.energy += energy;
-                return energy;
-            } else {
-                let pEnergy = this.energy;
-                this.energy = this.maxEnergy;
-                return this.maxEnergy - pEnergy;
-            }
-        }
-        return 0;
-    }
-
 }
 
 export class EnergySplitter extends Node {
@@ -153,23 +150,19 @@ export class EnergySplitter extends Node {
     constructor(x, y) {
         super(x, y, 50, "rgb(200, 150, 150)", "rgb(255, 200, 200)", "Energy Splitter", EnergySplitter.maxOutputs, 1, undefined, 250);
     }
+}
 
-    update() {
-        super.update();
+export class Battery extends Node {
+    static maxInputs = 2;
+    static maxOutputs = 1;
+
+    constructor(x, y) {
+        super(x, y, 75, "rgb(50, 50, 50)", "rgb(75, 75, 75)", "Battery", Battery.maxOutputs, Battery.maxInputs, 250, 500);
     }
 
-    transferEnergy(energy) {
-        if(this.energy < this.maxEnergy) {
-            if(this.energy + energy < this.maxEnergy) {
-                this.energy += energy;
-                return energy;
-            } else {
-                let pEnergy = this.energy;
-                this.energy = this.maxEnergy;
-                return this.maxEnergy - pEnergy;
-            }
-        }
-        return 0;
+    render() {
+        super.render();
+        Utils.c.fillStyle = "white";
+        Utils.c.fillText(this.energy + " W/h", this.pos.x , this.pos.y);
     }
-
 }

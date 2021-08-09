@@ -13,11 +13,14 @@ var HUD = {
                 this.selectedNode = undefined;
             }
         }
-        if(!this.selectedNode && Utils.dist(Utils.mouse.realX, Utils.mouse.realY, canvas.width / 2 - 45, canvas.height - 60) < 45 && Utils.mouse.leftIsPressed) {
+        if(!this.selectedNode && Utils.dist(Utils.mouse.realX, Utils.mouse.realY, canvas.width / 2 - 90, canvas.height - 60) < 45 && Utils.mouse.leftIsPressed) {
             this.selectedNode = new Nodes.EnergyMaker(Utils.mouse.x, Utils.mouse.y);
         }
-        if(!this.selectedNode && Utils.dist(Utils.mouse.realX, Utils.mouse.realY, canvas.width / 2 + 45, canvas.height - 60) < 45 && Utils.mouse.leftIsPressed) {
+        if(!this.selectedNode && Utils.dist(Utils.mouse.realX, Utils.mouse.realY, canvas.width / 2, canvas.height - 60) < 45 && Utils.mouse.leftIsPressed) {
             this.selectedNode = new Nodes.EnergySplitter(Utils.mouse.x, Utils.mouse.y);
+        }
+        if(!this.selectedNode && Utils.dist(Utils.mouse.realX, Utils.mouse.realY, canvas.width / 2 + 90, canvas.height - 60) < 45 && Utils.mouse.leftIsPressed) {
+            this.selectedNode = new Nodes.Battery(Utils.mouse.x, Utils.mouse.y);
         }
     },
     render: function() {
@@ -25,13 +28,19 @@ var HUD = {
         Utils.c.fillStyle = "rgb(255, 190, 0)";
         Utils.c.strokeStyle = "rgb(255, 255, 0)";
         Utils.c.beginPath();
-        Utils.c.arc(canvas.width / 2 - 45, canvas.height - 60, 40, 0, 2 * Math.PI);
+        Utils.c.arc(canvas.width / 2 - 90, canvas.height - 60, 40, 0, 2 * Math.PI);
         Utils.c.fill();
         Utils.c.stroke();
         Utils.c.fillStyle = "rgb(200, 150, 150)";
         Utils.c.strokeStyle = "rgb(255, 200, 200)";
         Utils.c.beginPath();
-        Utils.c.arc(canvas.width / 2 + 45, canvas.height - 60, 40, 0, 2 * Math.PI);
+        Utils.c.arc(canvas.width / 2, canvas.height - 60, 40, 0, 2 * Math.PI);
+        Utils.c.fill();
+        Utils.c.stroke();
+        Utils.c.fillStyle = "rgb(50, 50, 50)";
+        Utils.c.strokeStyle = "rgb(75, 75, 75)";
+        Utils.c.beginPath();
+        Utils.c.arc(canvas.width / 2 + 90, canvas.height - 60, 40, 0, 2 * Math.PI);
         Utils.c.fill();
         Utils.c.stroke();
         if(this.selectedNode) this.selectedNode.render();

@@ -38,6 +38,8 @@ function update() {
     Utils.millis = d.getTime();
     Utils.mouse.px = Utils.mouse.x;
     Utils.mouse.py = Utils.mouse.y;
+    Utils.mouse.x = Utils.mouse.realX - Utils.cam.x;
+    Utils.mouse.y = Utils.mouse.realY - Utils.cam.y;
 }
 
 addEventListener("keydown", e=>{Utils.keys[e.keyCode] = true;});
@@ -61,8 +63,6 @@ addEventListener("mouseup", e=>{
     }
 });
 canvas.addEventListener("mousemove", e=>{
-    Utils.mouse.x = e.clientX - Utils.cam.x;
-    Utils.mouse.y = e.clientY - Utils.cam.y;
     Utils.mouse.realX = e.clientX;
     Utils.mouse.realY = e.clientY;
 });

@@ -2,7 +2,8 @@ import Utils from "/scripts/Utils.js";
 
 export class Connector {
     static maxTransfer = 1;
-    static transferRate = 5;
+    static transferRate = 1;
+    static maxDistance = 500;
 
     static transferEnergy(connector) {
         if(connector.inputNode.energy > 0 && connector.energy < Connector.maxTransfer) {
@@ -18,7 +19,7 @@ export class Connector {
             connector.canTransfer = false;
         }
         connector.energy -= connector.outputNode.transferEnergy(connector.energy);
-        return !connector.canTransfer
+        return !connector.canTransfer;
     }
 
     constructor(node) {
@@ -35,6 +36,12 @@ export class Connector {
         if(!this.isPlaced) {
             this.outputNode.pos.x = Utils.mouse.x;
             this.outputNode.pos.y = Utils.mouse.y;
+            let dist = Math.sqrt(((this.inputNode.pos.x - this.outputNode.pos.x) ** 2) + ((this.inputNode.pos.y - this.outputNode.pos.y) ** 2));
+            if(dist > Connector.maxDistance) {
+                let angle = Math.atan2(-(this.inputNode.pos.x - this.outputNode.pos.x), this.inputNode.pos.y - this.outputNode.pos.y);
+                this.outputNode.pos.x = this.inputNode.pos.x + Math.cos(Math.PI * 1.5 + angle) * Connector.maxDistance;
+                this.outputNode.pos.y = this.inputNode.pos.y + Math.sin(Math.PI * 1.5 + angle) * Connector.maxDistance;
+            }
         } else if(Utils.millis >= this.timestamp){
             this.timestamp = Utils.millis + 1000 / Connector.transferRate;
             this.canTransfer = true;
