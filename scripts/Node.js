@@ -15,29 +15,16 @@ class Node {
         this.maxInputs = inputs;
         this.canBeSelected = false;
         this.isSelected = false;
-        this.connectorInProgress = undefined;
         this.energy = 0;
         this.maxEnergy = maxEnergy;
         this.borderPercent = 1;
         this.currentOutput = 0;
-    }
-
-    connect(connector) {
-        if(connector) {
-            let dist = Math.sqrt(((this.pos.x - connector.inputNode.pos.x) ** 2) + ((this.pos.y - connector.inputNode.pos.y) ** 2));
-            if(this.inputs.length < this.maxInputs && dist < Connector.maxDistance) {
-                if(connector.inputNode == this) {
-                    this.connectorInProgress = undefined;
-                } else {
-                    this.inputs.push(connector);
-                    connector.connect(this);
-                }
-                return true;
-            }
+        for(let i = 0; i < this.maxInputs; i++) {
+            this.inputs[i] = new ConnectionNode(this, "input", i);
         }
-        else if(!connector && !this.connectorInProgress && this.outputs.length < this.maxOutputs)
-            this.connectorInProgress = new Connector(this);
-        return false;
+        for(let i = 0; i < this.maxOutputs; i++) {
+            this.outputs[i] = new ConnectionNode(this, "output", i);
+        }
     }
 
     isMouseWithin() {
@@ -45,11 +32,12 @@ class Node {
     }
 
     update() {
+        for(let output of this.outputs) output.updatePos();
+        for(let input of this.inputs) input.updatePos();
         // Determine when the node is selected or not
         if(this.isMouseWithin()) {
             if(!Utils.mouse.leftIsPressed && !Utils.mouse.rightIsPressed) this.canBeSelected = true;
             if(Utils.mouse.leftIsPressed && this.canBeSelected) this.isSelected = true;
-            else if(Utils.mouse.rightIsPressed && this.canBeSelected) this.connect();
         }else if(!this.isSelected) {
             this.canBeSelected = false;
         }
@@ -58,8 +46,6 @@ class Node {
             if(Connector.transferEnergy(this.outputs[this.currentOutput]))
                 this.currentOutput = (this.currentOutput + 1) % this.outputs.length;
         }
-
-        if(this.connectorInProgress) this.connectorInProgress.update();
     }
 
     transferEnergy(energy) {
@@ -77,7 +63,8 @@ class Node {
     }
 
     render() {
-        if(this.connectorInProgress) this.connectorInProgress.render();
+        for(var output of this.outputs) output.render();
+        for(var input of this.inputs) input.render();
         Utils.c.fillStyle = this.color;
         Utils.c.strokeStyle = this.borderColor;
         Utils.c.beginPath();
@@ -164,5 +151,52 @@ export class Battery extends Node {
         super.render();
         Utils.c.fillStyle = "white";
         Utils.c.fillText(this.energy + " W/h", this.pos.x , this.pos.y);
+    }
+}
+
+class ConnectionNode {
+    constructor(node, type, id) {
+        this.node = node;
+        this.connector = undefined;
+        this.type = type;
+        this.pos = undefined;
+        this.rotation = undefined;
+        this.id = id;
+        this.updatePos();
+    }
+
+    updatePos() {
+        this.pos = {x:this.node.pos.x + 1, y:this.node.pos.y};
+        while(Math.sqrt(((this.pos.x - this.node.pos.x) ** 2) + ((this.pos.y - this.node.pos.y) ** 2)) < this.node.radius + 10) {
+            let angle = Math.atan2(this.pos.x - this.node.pos.x, this.pos.y - this.node.pos.y);
+            this.pos.x += Math.sin(angle);
+            this.pos.y += Math.cos(angle);
+        }
+        this.rotation = Math.atan2(-(this.pos.x - this.node.pos.x), this.pos.y - this.node.pos.y);
+    }
+
+    update() {}
+
+    render() {
+        Utils.c.fillStyle = "rgb(100, 100, 100)";
+        Utils.c.strokeStyle = "rgb(200, 200, 200)";
+        Utils.c.lineWidth = 4;
+        Utils.c.save();
+        Utils.c.translate(this.pos.x, this.pos.y);
+        Utils.c.rotate(this.rotation);
+        Utils.c.fillRect(-10, -10, 20, 20);
+        Utils.c.strokeRect(-10, -10, 20, 20);
+        Utils.c.beginPath()
+        if(this.type == "input") {
+            Utils.c.moveTo(-25, 25);
+            Utils.c.lineTo(0, 0);
+            Utils.c.lineTo(25, 25);
+        } else {
+            Utils.c.moveTo(-25, 0);
+            Utils.c.lineTo(0, 25);
+            Utils.c.lineTo(25, 0);
+        }
+        Utils.c.stroke();
+        Utils.c.restore();
     }
 }

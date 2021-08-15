@@ -24,13 +24,19 @@ var Game = {
             if(Utils.dist(Utils.mouse.x, Utils.mouse.y, node.pos.x, node.pos.y) < node.radius) node.isHovered = true;
             else node.isHovered = false;
 
+            if(Utils.mouse.leftIsPressed) node.isSelected = node.isMouseWithin();
+
             if(node.isSelected) {
                 if(Game.nodes.indexOf(node) < Game.nodes.length - 1) {
                     Game.nodes.push(Game.nodes.splice(Game.nodes.indexOf(node), 1)[0]);
                 }
-                node.pos.x = Utils.mouse.x;
-                node.pos.y = Utils.mouse.y;
-                for(let connector of node.inputs) {
+                if(Utils.mouse.x != Utils.mouse.px && Utils.mouse.y != Utils.mouse.py) {
+                    node.pos.x = Utils.mouse.x;
+                    node.pos.y = Utils.mouse.y;
+                }
+                for(let input of node.inputs) {
+                    if(!input.connector) continue;
+                    let connector = input.connector;
                     let dist = Math.sqrt(((connector.inputNode.pos.x - connector.outputNode.pos.x) ** 2) + ((connector.inputNode.pos.y - connector.outputNode.pos.y) ** 2));
                     if(dist > Connector.maxDistance) {
                         let angle = Math.atan2(-(connector.inputNode.pos.x - connector.outputNode.pos.x), connector.inputNode.pos.y - connector.outputNode.pos.y);
@@ -38,7 +44,10 @@ var Game = {
                         node.pos.y = connector.inputNode.pos.y + Math.sin(Math.PI * 1.5 + angle) * Connector.maxDistance;
                     }
                 }
-                if(!Utils.mouse.leftIsPressed) node.isSelected = false;
+                if(!Utils.mouse.leftIsPressed) {
+                    for(var output of node.outputs) output.updatePos();
+                    for(var input of node.inputs) input.updatePos();
+                }
             } else {
                 // Keep Nodes from stacking on top of eachother
                 for(var otherNode of this.nodes) {
